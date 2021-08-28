@@ -36,6 +36,7 @@ void _PDCLIB_xbox_libc_deinit (void)
 
 static int main_wrapper (__attribute__((unused)) void *unused_param)
 {
+    _PDCLIB_xbox_run_crt_initializers();
     int retval;
     char *_argv = 0;
     retval = main(0, &_argv);
@@ -61,7 +62,6 @@ void __attribute__((no_stack_protector)) WinMainCRTStartup (void)
     *((DWORD *)_tls_used.AddressOfIndex) = (int)tlssize / -4;
 
     _PDCLIB_xbox_libc_init();
-    _PDCLIB_xbox_run_crt_initializers();
 
     thrd_t main_thread;
     thrd_create(&main_thread, main_wrapper, NULL);
