@@ -11,6 +11,7 @@
 
 extern const IMAGE_TLS_DIRECTORY_32 _tls_used;
 extern void __cdecl __security_init_cookie (void);
+extern void _PDCLIB_xbox_run_pre_initializers (void);
 extern void _PDCLIB_xbox_run_crt_initializers (void);
 extern int main (int argc, char **argv);
 extern mtx_t _PDCLIB_filelist_mtx;
@@ -62,6 +63,7 @@ void __attribute__((no_stack_protector)) WinMainCRTStartup (void)
     *((DWORD *)_tls_used.AddressOfIndex) = (int)tlssize / -4;
 
     _PDCLIB_xbox_libc_init();
+    _PDCLIB_xbox_run_pre_initializers();
 
     thrd_t main_thread;
     thrd_create(&main_thread, main_wrapper, NULL);
