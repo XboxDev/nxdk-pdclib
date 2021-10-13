@@ -12,7 +12,7 @@ void _xbox_assert(char const * const expression, char const * const file_name, c
     snprintf(buffer, 512, "In function '%s': ", function_name);
     RtlAssert((PVOID)expression, (PVOID)file_name, line, buffer);
 #else
-    debugPrint("\nAssertion failed: '%s' in function '%s', file '%s', line %u\n", expression, function_name, file_name, line);
+    debugPrint("\nAssertion failed: '%s' in function '%s', file '%s', line %lu\n", expression, function_name, file_name, line);
     __asm__ ("cli\n"
              "1:\n"
              "hlt\n"
