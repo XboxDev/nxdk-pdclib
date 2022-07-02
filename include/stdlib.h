@@ -105,6 +105,10 @@ _PDCLIB_PUBLIC void * malloc( size_t size );
 */
 _PDCLIB_PUBLIC void * calloc( size_t nmemb, size_t size );
 
+#if __STDC_VERSION__ >= 201112L || defined(__cplusplus)
+_PDCLIB_PUBLIC void * aligned_alloc( size_t alignment, size_t size );
+#endif
+
 /* De-allocate a chunk of heap memory previously allocated using malloc(),
    calloc(), or realloc(), and pointed to by ptr. If ptr does not match a
    pointer previously returned by the mentioned allocation functions, or
