@@ -29,7 +29,9 @@ void _xbox_assert(char const * const expression, char const * const file_name, c
                           __LINE__), 0)))
 #endif
 
+#ifndef __cplusplus
 #define static_assert _Static_assert
+#endif
 
 #ifdef __cplusplus
 }
