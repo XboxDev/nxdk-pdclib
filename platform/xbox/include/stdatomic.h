@@ -114,9 +114,9 @@ typedef struct
 #define atomic_exchange(object, desired) atomic_exchange_explicit(object, desired, memory_order_seq_cst)
 
 // 7.17.7.4
-#define atomic_compare_exchange_strong_explicit(object, expected, desired, success, failure) __c11_atomic_compare_exchange_strong_explicit(object, expected, desired, success, failure)
+#define atomic_compare_exchange_strong_explicit(object, expected, desired, success, failure) __c11_atomic_compare_exchange_strong(object, expected, desired, success, failure)
 #define atomic_compare_exchange_strong(object, expected, desired) atomic_compare_exchange_strong_explicit(object, expected, desired, memory_order_seq_cst, memory_order_seq_cst)
-#define atomic_compare_exchange_weak_explicit(object, expected, desired, success, failure) __c11_atomic_compare_exchange_weak_explicit(object, expected, desired, success, failure)
+#define atomic_compare_exchange_weak_explicit(object, expected, desired, success, failure) __c11_atomic_compare_exchange_weak(object, expected, desired, success, failure)
 #define atomic_compare_exchange_weak(object, expected, desired) atomic_compare_exchange_weak_explicit(object, expected, desired, memory_order_seq_cst, memory_order_seq_cst)
 
 // 7.17.7.5
