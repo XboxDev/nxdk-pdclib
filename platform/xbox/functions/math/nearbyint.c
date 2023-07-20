@@ -1,7 +1,7 @@
 #include <math.h>
 #include <fenv.h>
 
-#pragma STDC FENV_ACCESS ON
+//#pragma STDC FENV_ACCESS ON // Causes "'#pragma STDC FENV_ACCESS ON' is illegal when precise is disabled"
 
 double nearbyint(double x)
 {
