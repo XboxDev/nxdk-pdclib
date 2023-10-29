@@ -3,18 +3,15 @@
 
 double hypot(double x, double y)
 {
-    assert(0); // Not implemented
-    return 0.0;
+    return sqrt(x * x + y * y);
 }
 
 float hypotf(float x, float y)
 {
-    assert(0); // Not implemented
-    return 0.0;
+    return sqrtf(x * x + y * y);
 }
 
 long double hypotl(long double x, long double y)
 {
-    assert(0); // Not implemented
-    return 0.0;
+    return sqrtl(x * x + y * y);
 }
