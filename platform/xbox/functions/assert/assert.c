@@ -9,7 +9,7 @@ void _xbox_assert(char const * const expression, char const * const file_name, c
 {
 #ifdef DEBUG_CONSOLE
     char buffer[512];
-    snprintf(buffer, 512, "In function '%s': ", function_name);
+    RtlSnprintf(buffer, 512, "In function '%s': ", function_name);
     RtlAssert((PVOID)expression, (PVOID)file_name, line, buffer);
 #else
     debugPrint("\nAssertion failed: '%s' in function '%s', file '%s', line %lu\n", expression, function_name, file_name, line);
