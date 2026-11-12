@@ -67,6 +67,12 @@ struct _PDCLIB_file_t * fopen( const char * _PDCLIB_restrict filename, const cha
         free( rc );
         return NULL;
     }
+    /* Preserve the initial position chosen by the platform, including append mode.
+       Non-seekable streams retain their initial zero position.
+    */
+    int saved_errno = *_PDCLIB_errno_func();
+    _PDCLIB_seek( rc, 0, SEEK_CUR );
+    *_PDCLIB_errno_func() = saved_errno;
     /* Setting pointers into the memory block allocated above */
     rc->ungetbuf = (unsigned char *)rc + sizeof( struct _PDCLIB_file_t );
     rc->filename = (char *)rc->ungetbuf + _PDCLIB_UNGETCBUFSIZE;
@@ -82,6 +88,11 @@ struct _PDCLIB_file_t * fopen( const char * _PDCLIB_restrict filename, const cha
        interactive device."
     */
     rc->status |= _IOLBF;
+    /* An update stream initially permits either reading or writing. */
+    if ( rc->status & _PDCLIB_FRW )
+    {
+        rc->status &= ~( _PDCLIB_FREAD | _PDCLIB_FWRITE );
+    }
     /* TODO: Setting mbstate */
     /* Adding to list of open files */
     _PDCLIB_setstream( rc );

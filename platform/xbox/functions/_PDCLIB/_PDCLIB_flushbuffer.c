@@ -15,40 +15,27 @@
 #include "pdclib/_PDCLIB_glue.h"
 
 #include <errno.h>
-#include <windows.h>
-
-int _PDCLIB_w32errno( DWORD werror );
-
-/* The number of attempts to complete an output buffer flushing before giving
- *    up.
- *    */
-#define _PDCLIB_IO_RETRIES 1
-
-/* What the system should do after an I/O operation did not succeed, before   */
-/* trying again. (Empty by default.)                                          */
-#define _PDCLIB_IO_RETRY_OP( stream )
+#include <unistd.h>
 
 int _PDCLIB_flushbuffer( struct _PDCLIB_file_t * stream )
 {
     /* No need to handle buffers > INT_MAX, as PDCLib doesn't allow them */
     _PDCLIB_size_t written = 0;
-    unsigned int retries;
     if ( ! ( stream->status & _PDCLIB_FBIN ) )
     {
         /* TODO: Text stream conversion here */
     }
-    /* Keep trying to write data until everything is written, an error
-       occurs, or the configured number of retries is exceeded.
-    */
-    for ( retries = _PDCLIB_IO_RETRIES; retries > 0; --retries )
+    /* Continue after short writes; stop on error or lack of progress. */
+    while ( written < stream->bufidx )
     {
-        DWORD amount_written;
-        BOOL status;
-        status = WriteFile(stream->handle, stream->buffer + written, stream->bufidx - written, &amount_written, NULL);
-        if (!status)
+        ssize_t amount_written = write( stream->handle, stream->buffer + written, stream->bufidx - written );
+        if ( amount_written <= 0 )
         {
-            /* Write error */
-            *_PDCLIB_errno_func() = _PDCLIB_w32errno(GetLastError());
+            /* A zero-byte write cannot make progress. */
+            if ( amount_written == 0 )
+            {
+                *_PDCLIB_errno_func() = _PDCLIB_EIO;
+            }
             stream->status |= _PDCLIB_ERRORFLAG;
             /* Move unwritten remains to begin of buffer. */
             stream->bufidx -= written;
@@ -57,6 +44,14 @@ int _PDCLIB_flushbuffer( struct _PDCLIB_file_t * stream )
         }
         written += (_PDCLIB_size_t)amount_written;
         stream->pos.offset += amount_written;
+        /* O_APPEND may also have been enabled through fileno() and fcntl(). */
+        int saved_errno = *_PDCLIB_errno_func();
+        off_t offset = lseek( stream->handle, 0, SEEK_CUR );
+        if ( offset >= 0 )
+        {
+            stream->pos.offset = offset;
+        }
+        *_PDCLIB_errno_func() = saved_errno;
         if ( written == stream->bufidx )
         {
             /* Buffer written completely. */
@@ -64,15 +59,7 @@ int _PDCLIB_flushbuffer( struct _PDCLIB_file_t * stream )
             return 0;
         }
     }
-    /* Number of retries exceeded. You probably want a different errno value
-       here.
-    */
-    *_PDCLIB_errno_func() = _PDCLIB_EAGAIN;
-    stream->status |= _PDCLIB_ERRORFLAG;
-    /* Move unwritten remains to begin of buffer. */
-    stream->bufidx -= written;
-    memmove( stream->buffer, stream->buffer + written, stream->bufidx );
-    return EOF;
+    return 0;
 }
 
 #endif

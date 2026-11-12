@@ -14,17 +14,13 @@
 #include "pdclib/_PDCLIB_glue.h"
 
 #include <errno.h>
-#include <windows.h>
-
-int _PDCLIB_w32errno( DWORD werror );
+#include <unistd.h>
 
 int _PDCLIB_fillbuffer( struct _PDCLIB_file_t * stream )
 {
     /* No need to handle buffers > INT_MAX, as PDCLib doesn't allow them */
-    BOOL status;
-    DWORD amount_read;
-    status = ReadFile(stream->handle, stream->buffer, stream->bufsize, &amount_read, NULL);
-    if (status)
+    ssize_t amount_read = read( stream->handle, stream->buffer, stream->bufsize );
+    if ( amount_read >= 0 )
     {
         if (amount_read == 0)
         {
@@ -45,7 +41,6 @@ int _PDCLIB_fillbuffer( struct _PDCLIB_file_t * stream )
     }
     else
     {
-        *_PDCLIB_errno_func() = _PDCLIB_w32errno(GetLastError());
         stream->status |= _PDCLIB_ERRORFLAG;
         return EOF;
     }

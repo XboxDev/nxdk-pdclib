@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <locale.h>
 #include <limits.h>
-#include <winbase.h>
 
 #ifndef REGTEST
 
@@ -28,17 +27,17 @@ static unsigned char _PDCLIB_sin_ungetbuf[_PDCLIB_UNGETCBUFSIZE];
 static unsigned char _PDCLIB_sout_ungetbuf[_PDCLIB_UNGETCBUFSIZE];
 static unsigned char _PDCLIB_serr_ungetbuf[_PDCLIB_UNGETCBUFSIZE];
 
-static struct _PDCLIB_file_t _PDCLIB_serr = { INVALID_HANDLE_VALUE, _PDCLIB_serr_buffer, BUFSIZ, 0, 0, { 0, 0 }, 0, _PDCLIB_serr_ungetbuf, _IONBF | _PDCLIB_FWRITE | _PDCLIB_STATIC,
+static struct _PDCLIB_file_t _PDCLIB_serr = { _PDCLIB_NOHANDLE, _PDCLIB_serr_buffer, BUFSIZ, 0, 0, { 0, 0 }, 0, _PDCLIB_serr_ungetbuf, _IONBF | _PDCLIB_FWRITE | _PDCLIB_STATIC,
 #ifndef __STDC_NO_THREADS__
     0,
 #endif
    NULL, NULL };
-static struct _PDCLIB_file_t _PDCLIB_sout = { INVALID_HANDLE_VALUE, _PDCLIB_sout_buffer, BUFSIZ, 0, 0, { 0, 0 }, 0, _PDCLIB_sout_ungetbuf, _IOLBF | _PDCLIB_FWRITE | _PDCLIB_STATIC,
+static struct _PDCLIB_file_t _PDCLIB_sout = { _PDCLIB_NOHANDLE, _PDCLIB_sout_buffer, BUFSIZ, 0, 0, { 0, 0 }, 0, _PDCLIB_sout_ungetbuf, _IOLBF | _PDCLIB_FWRITE | _PDCLIB_STATIC,
 #ifndef __STDC_NO_THREADS__
     0,
 #endif
     NULL, &_PDCLIB_serr };
-static struct _PDCLIB_file_t _PDCLIB_sin  = { INVALID_HANDLE_VALUE, _PDCLIB_sin_buffer, BUFSIZ, 0, 0, { 0, 0 }, 0, _PDCLIB_sin_ungetbuf, _IOLBF | _PDCLIB_FREAD | _PDCLIB_STATIC,
+static struct _PDCLIB_file_t _PDCLIB_sin  = { _PDCLIB_NOHANDLE, _PDCLIB_sin_buffer, BUFSIZ, 0, 0, { 0, 0 }, 0, _PDCLIB_sin_ungetbuf, _IOLBF | _PDCLIB_FREAD | _PDCLIB_STATIC,
 #ifndef __STDC_NO_THREADS__
     0,
 #endif

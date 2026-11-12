@@ -4,81 +4,43 @@
    Permission is granted to use, modify, and / or redistribute at will.
 */
 
-/* This is an implementation of _PDCLIB_open() fit for use with nxdk
-*/
-
 #include <stdio.h>
 
 #ifndef REGTEST
 
 #include "pdclib/_PDCLIB_glue.h"
-
+#include <fcntl.h>
 #include <errno.h>
-#include <windows.h>
-
-int _PDCLIB_w32errno( DWORD werror );
+#include <unistd.h>
 
 _PDCLIB_fd_t _PDCLIB_open( const char * const filename, unsigned int mode )
 {
-    int access_flags = 0;
-    int create_flags = 0;
-
-    switch ( mode & ( _PDCLIB_FREAD | _PDCLIB_FWRITE | _PDCLIB_FAPPEND | _PDCLIB_FRW ) )
+    int flags;
+    if ( mode & _PDCLIB_FRW )
     {
-        case _PDCLIB_FREAD: /* "r" */
-            access_flags = GENERIC_READ;
-            create_flags = OPEN_EXISTING;
-            break;
-        case _PDCLIB_FWRITE: /* "w" */
-            access_flags = GENERIC_WRITE;
-            create_flags = CREATE_ALWAYS;
-            break;
-        case _PDCLIB_FWRITE | _PDCLIB_FAPPEND: /* "a" */
-            access_flags = GENERIC_WRITE;
-            create_flags = OPEN_ALWAYS;
-            break;
-        case _PDCLIB_FREAD | _PDCLIB_FRW: /* "r+" */
-            access_flags = GENERIC_READ | GENERIC_WRITE;
-            create_flags = OPEN_EXISTING;
-            break;
-        case _PDCLIB_FWRITE | _PDCLIB_FRW: /* "w+" */
-            access_flags = GENERIC_READ | GENERIC_WRITE;
-            create_flags = CREATE_ALWAYS | TRUNCATE_EXISTING;
-            break;
-        case _PDCLIB_FAPPEND | _PDCLIB_FRW: /* "a+" */
-            access_flags = GENERIC_READ | GENERIC_WRITE;
-            create_flags = OPEN_ALWAYS;
-            break;
-        default: /* Invalid mode */
-            return INVALID_HANDLE_VALUE;
-    }
-
-    int status;
-    HANDLE handle;
-
-    handle = CreateFileA(filename, access_flags, FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, create_flags, FILE_ATTRIBUTE_NORMAL, NULL);
-
-    if (handle != INVALID_HANDLE_VALUE)
-    {
-        if (mode & _PDCLIB_FAPPEND)
-        {
-            LARGE_INTEGER new_pos;
-            new_pos.QuadPart = 0;
-            BOOL ok = SetFilePointerEx(handle, new_pos, &new_pos, FILE_END);
-            if (!ok)
-            {
-                *_PDCLIB_errno_func() = _PDCLIB_w32errno(GetLastError());
-                CloseHandle(handle);
-                return INVALID_HANDLE_VALUE;
-            }
-        }
-        return handle;
+        flags = O_RDWR;
     }
     else
     {
-        *_PDCLIB_errno_func() = _PDCLIB_w32errno(GetLastError());
-        return INVALID_HANDLE_VALUE;
+        flags = mode & _PDCLIB_FREAD ? O_RDONLY : O_WRONLY;
     }
+    if ( mode & _PDCLIB_FAPPEND )
+    {
+        flags |= O_CREAT | O_APPEND;
+    }
+    else if ( mode & _PDCLIB_FWRITE )
+    {
+        flags |= O_CREAT | O_TRUNC;
+    }
+    int fd = open( filename, flags, 0666 );
+    if ( fd >= 0 && ( mode & _PDCLIB_FAPPEND ) && lseek( fd, 0, SEEK_END ) < 0 )
+    {
+        int saved_errno = errno;
+        close( fd );
+        errno = saved_errno;
+        return _PDCLIB_NOHANDLE;
+    }
+    return fd;
 }
 
 #endif

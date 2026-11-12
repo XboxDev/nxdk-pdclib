@@ -279,8 +279,8 @@ typedef __builtin_va_list _PDCLIB_va_list;
 /* I/O ---------------------------------------------------------------------- */
 
 /* The type of the file descriptor returned by _PDCLIB_open(). */
-/* It has to match the winapi HANDLE type                      */
-typedef void *_PDCLIB_fd_t;
+/* Shared with the POSIX descriptor I/O used by fdopen() / fileno(). */
+typedef int _PDCLIB_fd_t;
 
 /* The value (of type _PDCLIB_fd_t) returned by _PDCLIB_open() if the operation
    failed.
@@ -292,8 +292,8 @@ typedef void *_PDCLIB_fd_t;
 
 /* The minimum number of files the implementation can open simultaneously. Must
    be at least 8. Depends largely on how the bookkeeping is done by fopen() /
-   freopen() / fclose(). The example implementation limits the number of open
-   files only by available memory.
+   freopen() / fclose(). nxdk uses a bounded file-descriptor table; allocations for
+   the streams themselves additionally depend on available memory.
 */
 #define _PDCLIB_FOPEN_MAX 8
 

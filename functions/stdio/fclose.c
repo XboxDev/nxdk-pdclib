@@ -20,6 +20,8 @@ extern struct _PDCLIB_file_t * _PDCLIB_filelist;
 
 int fclose( struct _PDCLIB_file_t * stream )
 {
+    int result = 0;
+    int saved_errno = 0;
     _PDCLIB_LOCK( stream->mtx );
 
     /* Remove stream from list */
@@ -36,13 +38,17 @@ int fclose( struct _PDCLIB_file_t * stream )
         if ( _PDCLIB_flushbuffer( stream ) == EOF )
         {
             /* Flush failed, errno already set */
-            _PDCLIB_UNLOCK( stream->mtx );
-            return EOF;
+            result = EOF;
+            saved_errno = *_PDCLIB_errno_func();
         }
     }
 
     /* Close handle */
-    _PDCLIB_close( stream->handle );
+    if ( _PDCLIB_close( stream->handle ) != 0 && result == 0 )
+    {
+        result = EOF;
+        saved_errno = *_PDCLIB_errno_func();
+    }
 
     /* Delete tmpfile() */
     if ( stream->status & _PDCLIB_DELONCLOSE )
@@ -67,10 +73,17 @@ int fclose( struct _PDCLIB_file_t * stream )
     /* Free stream */
     if ( ! ( stream->status & _PDCLIB_STATIC ) )
     {
+#ifndef __STDC_NO_THREADS__
+        mtx_destroy( &stream->mtx );
+#endif
         free( stream );
     }
 
-    return 0;
+    if ( result != 0 )
+    {
+        *_PDCLIB_errno_func() = saved_errno;
+    }
+    return result;
 }
 
 #endif

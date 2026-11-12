@@ -13,21 +13,11 @@
 
 #include "pdclib/_PDCLIB_glue.h"
 #include <errno.h>
-#include <windows.h>
+#include <unistd.h>
 
-int _PDCLIB_w32errno( DWORD werror );
-
-int _PDCLIB_close( void *fd )
+int _PDCLIB_close( _PDCLIB_fd_t fd )
 {
-    if ( CloseHandle( fd ) )
-    {
-        return 0;
-    }
-    else
-    {
-        *_PDCLIB_errno_func() = _PDCLIB_w32errno(GetLastError());
-        return -1;
-    }
+    return close( fd );
 }
 
 #endif
