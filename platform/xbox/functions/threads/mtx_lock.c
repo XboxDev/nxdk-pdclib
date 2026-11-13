@@ -4,7 +4,7 @@
 int mtx_lock (mtx_t *mtx)
 {
     NTSTATUS status = NtWaitForSingleObject(mtx->handle, FALSE, NULL);
-    if (status != STATUS_WAIT_0)
+    if (status == STATUS_WAIT_0)
     {
         return thrd_success;
     }

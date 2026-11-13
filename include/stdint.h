@@ -69,7 +69,7 @@ typedef _PDCLIB_uintmax_t uintmax_t;
 
 /* 7.18.2 Limits of specified-width integer types */
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && __cplusplus < 201103L
 #ifndef __STDC_LIMIT_MACROS
 #define _PDCLIB_NO_LIMIT_MACROS
 #endif
@@ -167,7 +167,7 @@ typedef _PDCLIB_uintmax_t uintmax_t;
 
 /* 7.18.4 Macros for integer constants */
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && __cplusplus < 201103L
 #ifndef __STDC_CONSTANT_MACROS
 #define _PDCLIB_NO_CONSTANT_MACROS
 #endif
