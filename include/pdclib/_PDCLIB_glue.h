@@ -45,6 +45,13 @@ _PDCLIB_LOCAL _PDCLIB_fd_t _PDCLIB_open( const char * const filename, unsigned i
 */
 _PDCLIB_LOCAL int _PDCLIB_flushbuffer( struct _PDCLIB_file_t * stream );
 
+/* A system call that writes data straight from the caller's memory, for a
+   stream whose buffer is empty. Returns the number of bytes written; fewer
+   than size means a write error. Never changes the data. Sets stream error
+   flags and errno appropriately on error.
+*/
+_PDCLIB_LOCAL _PDCLIB_size_t _PDCLIB_writedirect( struct _PDCLIB_file_t * stream, const char * data, _PDCLIB_size_t size );
+
 /* A system call that fills a stream's buffer.
    Returns 0 on success, EOF on read error / EOF.
    Sets stream EOF / error flags and errno appropriately on error.
