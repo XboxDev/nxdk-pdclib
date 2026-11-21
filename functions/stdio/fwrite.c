@@ -5,6 +5,7 @@
 */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 
 #ifndef REGTEST
@@ -17,10 +18,23 @@
 
 size_t fwrite( const void * _PDCLIB_restrict ptr, size_t size, size_t nmemb, struct _PDCLIB_file_t * _PDCLIB_restrict stream )
 {
+    const char * src = (const char *)ptr;
+    size_t total;
+    size_t done = 0;
+    /* Line-buffered streams: the buffer position just after the last newline, 0 if none */
     _PDCLIB_size_t offset = 0;
-    /* TODO: lineend */
-    /* int lineend = 0; */
-    size_t nmemb_i;
+
+    if ( size == 0 || nmemb == 0 )
+    {
+        return 0;
+    }
+
+    if ( nmemb > SIZE_MAX / size )
+    {
+        nmemb = SIZE_MAX / size;
+    }
+
+    total = size * nmemb;
 
     _PDCLIB_LOCK( stream->mtx );
 
@@ -29,30 +43,64 @@ size_t fwrite( const void * _PDCLIB_restrict ptr, size_t size, size_t nmemb, str
         _PDCLIB_UNLOCK( stream->mtx );
         return 0;
     }
-    for ( nmemb_i = 0; nmemb_i < nmemb; ++nmemb_i )
+
+    while ( done < total )
     {
-        size_t size_i;
-        for ( size_i = 0; size_i < size; ++size_i )
+        size_t left = total - done;
+        size_t count;
+
+        if ( stream->bufidx == 0 && left >= stream->bufsize )
         {
-            if ( ( stream->buffer[ stream->bufidx++ ] = ((char*)ptr)[ nmemb_i * size + size_i ] ) == '\n' )
+            /* At least a buffer's worth into an empty buffer: straight from the caller's memory, in one write
+               instead of one per buffer-full, and without the copy. Line-buffered streams too: writing
+               everything writes every complete line.
+            */
+            done += _PDCLIB_writedirect( stream, src + done, left );
+            if ( done < total )
             {
-                /* Remember last newline, in case we have to do a partial line-buffered flush */
-                offset = stream->bufidx;
-                /* lineend = true; */
+                /* Write error: the elements written completely */
+                _PDCLIB_UNLOCK( stream->mtx );
+                return done / size;
             }
-            if ( stream->bufidx == stream->bufsize )
+            break;
+        }
+
+        count = stream->bufsize - stream->bufidx;
+        if ( count > left )
+        {
+            count = left;
+        }
+        memcpy( stream->buffer + stream->bufidx, src + done, count );
+
+        if ( stream->status & _IOLBF )
+        {
+            /* Remember the last newline, in case we have to do a partial line-buffered flush */
+            size_t i = count;
+            while ( i > 0 )
             {
-                if ( _PDCLIB_flushbuffer( stream ) == EOF )
+                if ( src[ done + --i ] == '\n' )
                 {
-                    /* Returning number of objects completely buffered */
-                    _PDCLIB_UNLOCK( stream->mtx );
-                    return nmemb_i;
+                    offset = stream->bufidx + i + 1;
+                    break;
                 }
-                offset = 0;
-                /* lineend = false; */
             }
         }
+
+        stream->bufidx += count;
+        done += count;
+
+        if ( stream->bufidx == stream->bufsize )
+        {
+            if ( _PDCLIB_flushbuffer( stream ) == EOF )
+            {
+                /* Returning number of objects completely buffered */
+                _PDCLIB_UNLOCK( stream->mtx );
+                return ( done - count ) / size;
+            }
+            offset = 0;
+        }
     }
+
     /* Fully-buffered streams are OK. Non-buffered streams must be flushed,
        line-buffered streams only if there's a newline in the buffer.
     */
@@ -69,7 +117,7 @@ size_t fwrite( const void * _PDCLIB_restrict ptr, size_t size, size_t nmemb, str
                    error, and can't really do anything about the inconsistency.
                 */
                 _PDCLIB_UNLOCK( stream->mtx );
-                return nmemb_i - 1;
+                return nmemb - 1;
             }
             break;
         case _IOLBF:
@@ -82,7 +130,7 @@ size_t fwrite( const void * _PDCLIB_restrict ptr, size_t size, size_t nmemb, str
                     /* See comment above. */
                     stream->bufidx = bufidx;
                     _PDCLIB_UNLOCK( stream->mtx );
-                    return nmemb_i - 1;
+                    return nmemb - 1;
                 }
                 stream->bufidx = bufidx - offset;
                 memmove( stream->buffer, stream->buffer + offset, stream->bufidx );
@@ -90,7 +138,7 @@ size_t fwrite( const void * _PDCLIB_restrict ptr, size_t size, size_t nmemb, str
     }
 
     _PDCLIB_UNLOCK( stream->mtx );
-    return nmemb_i;
+    return nmemb;
 }
 
 #endif
@@ -101,7 +149,26 @@ size_t fwrite( const void * _PDCLIB_restrict ptr, size_t size, size_t nmemb, str
 
 int main( void )
 {
-    /* Testing covered by fread(). */
+    /* Testing covered by fread(), except a write of more than the buffer
+       holds, which goes straight from the caller's memory to the file.
+    */
+    FILE * fh;
+    static char big[ 3 * BUFSIZ + 5 ];
+    static char back[ 3 * BUFSIZ + 5 ];
+    size_t i;
+    for ( i = 0; i < sizeof( big ); ++i )
+    {
+        big[ i ] = (char)( i * 7 );
+    }
+    TESTCASE( ( fh = tmpfile() ) != NULL );
+    TESTCASE( fwrite( "x", 1, 1, fh ) == 1 );
+    TESTCASE( fwrite( big, 1, sizeof( big ), fh ) == sizeof( big ) );
+    TESTCASE( ftell( fh ) == (long)sizeof( big ) + 1 );
+    rewind( fh );
+    TESTCASE( fgetc( fh ) == 'x' );
+    TESTCASE( fread( back, 1, sizeof( back ), fh ) == sizeof( back ) );
+    TESTCASE( memcmp( back, big, sizeof( big ) ) == 0 );
+    TESTCASE( fclose( fh ) == 0 );
     return TEST_RESULTS;
 }
 
