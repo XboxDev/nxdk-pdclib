@@ -34,6 +34,7 @@ int setvbuf( struct _PDCLIB_file_t * _PDCLIB_restrict stream, char * _PDCLIB_res
                 */
                 return -1;
             }
+            _PDCLIB_LOCK( stream->mtx );
             if ( buf == NULL )
             {
                 /* User requested buffer size, but leaves it to library to
@@ -44,8 +45,6 @@ int setvbuf( struct _PDCLIB_file_t * _PDCLIB_restrict stream, char * _PDCLIB_res
                    current buffer (i.e., do nothing), to save the malloc() /
                    free() overhead.
                 */
-                _PDCLIB_LOCK( stream->mtx );
-
                 if ( ( stream->bufsize < size ) || ( stream->bufsize > ( size << 1 ) ) )
                 {
                     /* Buffer too small, or much too large - allocate. */
@@ -56,8 +55,33 @@ int setvbuf( struct _PDCLIB_file_t * _PDCLIB_restrict stream, char * _PDCLIB_res
                         return -1;
                     }
 
+                    /* The buffer replaced is freed if an earlier setvbuf()
+                       allocated it (the first buffer is part of the FILE).
+                    */
+                    if ( stream->status & _PDCLIB_FREEBUFFER )
+                    {
+                        free( stream->buffer );
+                    }
+
                     /* This buffer must be free()d on fclose() */
                     stream->status |= _PDCLIB_FREEBUFFER;
+                }
+                else
+                {
+                    /* Keep the current buffer and its size. */
+                    buf = stream->buffer;
+                    size = stream->bufsize;
+                }
+            }
+            else
+            {
+                /* The caller's buffer: the one replaced is freed if an earlier
+                   setvbuf() allocated it, and the caller's is never freed.
+                */
+                if ( stream->status & _PDCLIB_FREEBUFFER )
+                {
+                    free( stream->buffer );
+                    stream->status &= ~_PDCLIB_FREEBUFFER;
                 }
             }
             stream->buffer = buf;
